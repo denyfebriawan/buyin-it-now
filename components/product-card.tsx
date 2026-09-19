@@ -1,6 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { StockBadge } from "@/components/stock-badge";
 import {
   Card,
   CardContent,
@@ -10,24 +11,14 @@ import {
 } from "@/components/ui/card";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/products";
-
-const LOW_STOCK_THRESHOLD = 5;
-
-function StockBadge({ stock }: { stock: number }) {
-  if (stock === 0) {
-    return <Badge variant="secondary">Out of stock</Badge>;
-  }
-  if (stock <= LOW_STOCK_THRESHOLD) {
-    return <Badge variant="outline">Only {stock} left</Badge>;
-  }
-  return null;
-}
+import { getStockStatus } from "@/lib/stock";
 
 export function ProductCard({ product }: { product: Product }) {
-  const { name, description, priceCents, imageUrl, stock } = product;
+  const { id, name, description, priceCents, imageUrl, stock } = product;
+  const soldOut = getStockStatus(stock) === "out";
 
   return (
-    <Card className="h-full pt-0">
+    <Card className="relative h-full pt-0 transition-shadow hover:ring-foreground/30 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
       <div className="relative aspect-square bg-muted">
         <Image
           src={imageUrl}
@@ -35,7 +26,7 @@ export function ProductCard({ product }: { product: Product }) {
           fill
           sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className={
-            stock === 0 ? "object-cover opacity-60 grayscale" : "object-cover"
+            soldOut ? "object-cover opacity-60 grayscale" : "object-cover"
           }
         />
         <div className="absolute top-2 left-2">
@@ -43,7 +34,16 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
       <CardHeader>
-        <CardTitle>{name}</CardTitle>
+        <CardTitle>
+          {/* The ::after layer stretches this link over the whole card, so
+              the entire card is clickable while the title stays the link text. */}
+          <Link
+            href={`/products/${id}`}
+            className="outline-none after:absolute after:inset-0"
+          >
+            {name}
+          </Link>
+        </CardTitle>
         <CardDescription className="line-clamp-2">{description}</CardDescription>
       </CardHeader>
       <CardContent className="mt-auto">
