@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  cartItems CartItem[]
+  orders    Order[]
+
+  @@map("users")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  // Money is stored as integer cents to avoid floating point rounding errors.
+  priceCents  Int      @map("price_cents")
+  imageUrl    String   @map("image_url")
+  stock       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  // Speeds up listing the newest products first.
+  @@index([createdAt])
+  @@map("products")
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  productId Int      @map("product_id")
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Adding the same product twice raises the quantity instead of adding a row.
+  @@unique([userId, productId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  userId     Int         @map("user_id")
+  status     OrderStatus @default(PENDING)
+  totalCents Int         @map("total_cents")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items OrderItem[]
+
+  // Speeds up "my orders, newest first".
+  @@index([userId, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id             Int @id @default(autoincrement())
+  orderId        Int @map("order_id")
+  productId      Int @map("product_id")
+  quantity       Int
+  // The price at purchase time, so later price changes don't rewrite old orders.
+  unitPriceCents Int @map("unit_price_cents")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
