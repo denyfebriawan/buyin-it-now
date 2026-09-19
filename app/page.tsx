@@ -1,7 +1,12 @@
+import { connection } from "next/server";
+
 import { ProductCard } from "@/components/product-card";
 import { getProducts } from "@/lib/products";
 
 export default async function Home() {
+  // Wait for a real request, so the database is read on every visit instead of
+  // once at build time.
+  await connection();
   const products = await getProducts();
 
   return (
