@@ -9,6 +9,15 @@ type CreateUserInput = {
   passwordHash: string;
 };
 
+// Used by login. This is the one place the password hash is read back out of
+// the database, so it selects only the two fields login needs.
+export function getUserByEmail(email: string) {
+  return prisma.user.findUnique({
+    where: { email },
+    select: { id: true, passwordHash: true },
+  });
+}
+
 // The database's unique index on email is the real duplicate check. Looking the
 // email up first would leave a gap where two simultaneous sign-ups both pass
 // the lookup, so we insert and translate the "unique violation" error (P2002).

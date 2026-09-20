@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { signup } from "@/app/actions/auth";
@@ -99,6 +100,13 @@ export function SignupForm() {
           <Button type="submit" size="lg" disabled={pending}>
             {pending ? "Creating account..." : "Create account"}
           </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/login" className="underline underline-offset-4">
+              Log in
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>
