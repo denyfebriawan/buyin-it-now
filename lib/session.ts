@@ -68,3 +68,11 @@ export async function createSession(userId: number): Promise<void> {
     maxAge: 60 * 60 * 24 * 7, // 7 days, matching SESSION_DURATION above.
   });
 }
+
+// Tells the browser to drop the cookie (a Set-Cookie header for the same name
+// and path, already expired). It does not invalidate the token itself: a copy
+// of it would stay valid until it expires, because the server keeps no list of
+// issued sessions.
+export async function deleteSession(): Promise<void> {
+  (await cookies()).delete(SESSION_COOKIE);
+}

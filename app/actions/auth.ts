@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 
 import { getDummyHash, hashPassword, verifyPassword } from "@/lib/password";
-import { createSession } from "@/lib/session";
+import { createSession, deleteSession } from "@/lib/session";
 import { createUser, getUserByEmail } from "@/lib/users";
 import { LOGIN_ERROR, loginSchema, signupSchema } from "@/lib/validation/auth";
 
@@ -89,6 +89,15 @@ export async function login(
   }
 
   await createSession(user.id);
+
+  redirect("/");
+}
+
+// Logging out when nobody is logged in is harmless, so this needs no checks.
+// It is a Server Action (POST only) on purpose: a logout link could be
+// triggered by prefetching or by another site embedding it.
+export async function logout(): Promise<void> {
+  await deleteSession();
 
   redirect("/");
 }
