@@ -2,6 +2,7 @@ import "server-only";
 
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 const SESSION_COOKIE = "session";
 const SESSION_DURATION = "7d";
@@ -31,8 +32,7 @@ async function encrypt(payload: SessionPayload): Promise<string> {
 
 // Returns the payload for a valid, unexpired, correctly signed token, or
 // undefined for anything else: missing, tampered, expired or malformed. A
-// caller only has to check "did I get a payload back?". Used by getSession()
-// in the next mechanism, which reads the cookie back on every request.
+// caller only has to check "did I get a payload back?".
 export async function decrypt(token: string | undefined): Promise<SessionPayload | undefined> {
   if (!token) return undefined;
   try {
@@ -44,6 +44,15 @@ export async function decrypt(token: string | undefined): Promise<SessionPayload
     return undefined;
   }
 }
+
+// Reads the cookie and verifies it. Returns undefined if there is no cookie,
+// or if it's invalid, tampered or expired: all of those just mean "nobody's
+// logged in", not an error. cache() means that if several components in the
+// same request all ask "who is this", the cookie is only decrypted once.
+export const getSession = cache(async (): Promise<SessionPayload | undefined> => {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  return decrypt(token);
+});
 
 export async function createSession(userId: number): Promise<void> {
   const token = await encrypt({ userId });
