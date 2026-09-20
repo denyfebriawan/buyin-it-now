@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 
 import { hashPassword } from "@/lib/password";
+import { createSession } from "@/lib/session";
 import { createUser } from "@/lib/users";
 import { signupSchema } from "@/lib/validation/auth";
 
@@ -47,6 +48,8 @@ export async function signup(
       values: { name, email },
     };
   }
+
+  await createSession(result.user.id);
 
   // redirect() works by throwing, so it must stay outside any try/catch.
   redirect("/");
