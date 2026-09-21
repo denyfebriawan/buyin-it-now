@@ -30,6 +30,16 @@ export async function AuthNav() {
 
   return (
     <>
+      {/* Only a shortcut. /admin checks the role itself, so hiding or showing
+          this link never grants or removes any access. */}
+      {user.role === "ADMIN" && (
+        <Link
+          href="/admin"
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+        >
+          Admin
+        </Link>
+      )}
       <Link
         href="/account"
         className={buttonVariants({
