@@ -29,8 +29,14 @@ export async function placeOrderAction(
 
   const result = await placeOrder(parsed.data.expectedTotalCents);
 
-  // redirect() works by throwing, so it stays outside any try/catch.
-  if (result.ok) redirect(`/orders/${result.orderId}?placed=1`);
+  if (result.ok) {
+    // The cart is empty now, so the count on the header's cart icon has to
+    // change. A redirect alone would keep the old header, because layouts are
+    // not re-rendered when navigating to another page.
+    refresh();
+    // redirect() works by throwing, so it stays outside any try/catch.
+    redirect(`/orders/${result.orderId}?placed=1`);
+  }
 
   // Every failure left the cart untouched (the transaction rolled back).
   // refresh() re-renders the checkout page, so its summary, warnings and the

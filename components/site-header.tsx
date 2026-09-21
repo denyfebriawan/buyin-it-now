@@ -1,8 +1,7 @@
-import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
 
 import { AuthNav } from "@/components/auth-nav";
-import { buttonVariants } from "@/components/ui/button";
+import { CartLink } from "@/components/cart-link";
 
 export function SiteHeader() {
   return (
@@ -13,13 +12,7 @@ export function SiteHeader() {
         </Link>
         <div className="flex items-center gap-1">
           <AuthNav />
-          <Link
-            href="/cart"
-            aria-label="Cart"
-            className={buttonVariants({ variant: "ghost", size: "icon" })}
-          >
-            <ShoppingCart />
-          </Link>
+          <CartLink />
         </div>
       </div>
     </header>
