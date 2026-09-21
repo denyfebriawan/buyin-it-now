@@ -7,7 +7,10 @@ import { cn } from "@/lib/utils";
 
 // Each admin section adds its own entry here when it arrives, so there are no
 // links to pages that do not exist yet.
-const SECTIONS = [{ href: "/admin", label: "Overview" }];
+const SECTIONS = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/products", label: "Products" },
+];
 
 // Only the highlight of the current page needs the browser (usePathname), so
 // this small navigation is the one Client Component in the admin shell.
