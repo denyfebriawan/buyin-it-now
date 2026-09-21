@@ -1,14 +1,15 @@
 import { Badge } from "@/components/ui/badge";
 import { getStockStatus } from "@/lib/stock";
 
-// The catalog only flags unusual stock levels. The detail page also shows
-// "In stock" so the shopper always sees an availability message.
+// The catalog only flags unusual stock levels. The detail page passes
+// showCount so the shopper always sees the exact number left, instead of a
+// vague "In stock" they would have to guess about.
 export function StockBadge({
   stock,
-  showInStock = false,
+  showCount = false,
 }: {
   stock: number;
-  showInStock?: boolean;
+  showCount?: boolean;
 }) {
   const status = getStockStatus(stock);
 
@@ -18,5 +19,7 @@ export function StockBadge({
   if (status === "low") {
     return <Badge variant="outline">Only {stock} left</Badge>;
   }
-  return showInStock ? <Badge variant="outline">In stock</Badge> : null;
+  return showCount ? (
+    <Badge variant="outline">{stock.toLocaleString("en-US")} in stock</Badge>
+  ) : null;
 }

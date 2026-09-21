@@ -76,7 +76,7 @@ export default async function ProductPage({
           <p className="text-2xl font-semibold">
             {formatPrice(product.priceCents)}
           </p>
-          <StockBadge stock={product.stock} showInStock />
+          <StockBadge stock={product.stock} showCount />
           <p className="text-muted-foreground">{product.description}</p>
 
           {/* What is shown is only a convenience: addToCartAction checks the
