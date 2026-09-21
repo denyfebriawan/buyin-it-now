@@ -13,13 +13,20 @@ export type InsufficientItem = {
 export type PlaceOrderResult =
   | { ok: true; orderId: number }
   | { ok: false; reason: "empty-cart" }
-  | { ok: false; reason: "insufficient-stock"; items: InsufficientItem[] };
+  | { ok: false; reason: "insufficient-stock"; items: InsufficientItem[] }
+  | { ok: false; reason: "price-changed"; totalCents: number };
 
 // Thrown inside the transaction to make it roll back. Anything thrown from the
 // callback of $transaction() undoes every step taken so far.
 class InsufficientStockError extends Error {
   constructor(readonly items: InsufficientItem[]) {
     super("Not enough stock");
+  }
+}
+
+class PriceChangedError extends Error {
+  constructor(readonly totalCents: number) {
+    super("The total changed");
   }
 }
 
@@ -32,7 +39,15 @@ class InsufficientStockError extends Error {
 //   4. Commit: stock is lower, the order exists and the cart is empty.
 //
 // Payment is simulated: the order is created already PAID.
-export async function placeOrder(): Promise<PlaceOrderResult> {
+//
+// expectedTotalCents is the total the buyer saw on the checkout page. If the
+// real total is different (a price or the cart changed in the meantime) the
+// order is refused, so nobody is charged an amount they did not see. It is only
+// ever compared, never used to price anything, so forging it cannot give a
+// discount: the worst it can do is make the order fail.
+export async function placeOrder(
+  expectedTotalCents?: number,
+): Promise<PlaceOrderResult> {
   const user = await requireUser();
 
   try {
@@ -108,6 +123,13 @@ export async function placeOrder(): Promise<PlaceOrderResult> {
           0,
         );
 
+        if (
+          expectedTotalCents !== undefined &&
+          totalCents !== expectedTotalCents
+        ) {
+          throw new PriceChangedError(totalCents);
+        }
+
         const order = await tx.order.create({
           data: {
             userId: user.id,
@@ -128,6 +150,36 @@ export async function placeOrder(): Promise<PlaceOrderResult> {
     if (error instanceof InsufficientStockError) {
       return { ok: false, reason: "insufficient-stock", items: error.items };
     }
+    if (error instanceof PriceChangedError) {
+      return { ok: false, reason: "price-changed", totalCents: error.totalCents };
+    }
     throw error;
   }
+}
+
+// One order with its items, but only if it belongs to the current user. The
+// user's id is part of the query, so someone else's order and an order that
+// does not exist look exactly the same (null): nobody can learn which ids exist.
+// Prices are the ones recorded when the order was placed, not today's prices.
+export async function getOrder(orderId: number) {
+  const user = await requireUser();
+
+  return prisma.order.findFirst({
+    where: { id: orderId, userId: user.id },
+    select: {
+      id: true,
+      status: true,
+      totalCents: true,
+      createdAt: true,
+      items: {
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          quantity: true,
+          unitPriceCents: true,
+          product: { select: { id: true, name: true, imageUrl: true } },
+        },
+      },
+    },
+  });
 }
