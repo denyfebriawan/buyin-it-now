@@ -76,8 +76,11 @@ model Order {
   user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   items OrderItem[]
 
-  // Speeds up "my orders, newest first".
-  @@index([userId, createdAt])
+  // Serves "my orders, newest first, older than this one" (getOrders in
+  // lib/orders.ts), which filters on user_id and sorts by id. Order ids only go
+  // up, so id order is creation order. An index that matches both the filter and
+  // the sort keeps deep pages fast for users with many orders.
+  @@index([userId, id])
   @@map("orders")
 }
 

@@ -45,6 +45,13 @@ export default async function CartPage() {
         <span>Subtotal</span>
         <span className="tabular-nums">{formatPrice(subtotalCents)}</span>
       </div>
+
+      <Link
+        href="/checkout"
+        className={buttonVariants({ size: "lg", className: "mt-4 w-full" })}
+      >
+        Checkout
+      </Link>
     </div>
   );
 }
