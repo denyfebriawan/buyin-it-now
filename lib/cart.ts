@@ -38,6 +38,9 @@ export async function getCart() {
   return { items, subtotalCents };
 }
 
+// One line of the cart, as getCart() returns it.
+export type CartLineData = Awaited<ReturnType<typeof getCart>>["items"][number];
+
 export type AddToCartResult =
   | { ok: true; quantity: number }
   | { ok: false; reason: "not-found" | "out-of-stock" };

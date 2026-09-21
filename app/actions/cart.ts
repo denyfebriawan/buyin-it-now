@@ -1,7 +1,14 @@
 "use server";
 
-import { addToCart } from "@/lib/cart";
-import { addToCartSchema, MAX_QUANTITY } from "@/lib/validation/cart";
+import { refresh } from "next/cache";
+
+import { addToCart, removeCartItem, setCartItemQuantity } from "@/lib/cart";
+import {
+  addToCartSchema,
+  MAX_QUANTITY,
+  removeItemSchema,
+  setQuantitySchema,
+} from "@/lib/validation/cart";
 
 export type AddToCartState =
   | { status: "success" | "error"; message: string }
@@ -43,4 +50,25 @@ export async function addToCartAction(
     status: "success",
     message: `Added. You now have ${result.quantity} in your cart.`,
   };
+}
+
+// The two actions below are used by buttons ON the cart page, so after they
+// change the data they call refresh() to re-render that page. They return
+// nothing and ignore invalid input silently: the buttons only ever send valid
+// values, so bad input can only come from a forged request. The login check and
+// the "only my own cart" rule live inside the cart functions they call.
+export async function updateCartItemAction(formData: FormData): Promise<void> {
+  const parsed = setQuantitySchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return;
+
+  await setCartItemQuantity(parsed.data.cartItemId, parsed.data.quantity);
+  refresh();
+}
+
+export async function removeCartItemAction(formData: FormData): Promise<void> {
+  const parsed = removeItemSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return;
+
+  await removeCartItem(parsed.data.cartItemId);
+  refresh();
 }
