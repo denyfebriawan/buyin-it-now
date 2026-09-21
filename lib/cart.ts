@@ -1,11 +1,15 @@
 import "server-only";
 
-import { requireUser } from "@/lib/auth";
+import { cache } from "react";
+
+import { getCurrentUser, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// Every function here calls requireUser() itself and only ever touches the
-// current user's rows, so no caller can forget the login check or reach
-// someone else's cart. Prices are never stored or accepted here: they are read
+// Every function here only ever touches the current user's rows, so no caller
+// can reach someone else's cart. All of them call requireUser() themselves so
+// the login check cannot be forgotten, except getCartCount(), which is for the
+// header that every visitor sees and returns 0 for anyone not logged in.
+// Prices are never stored or accepted here: they are read
 // from the products table each time, so a request can only name a product and
 // a quantity.
 
@@ -136,3 +140,21 @@ export async function getCartQuantity(productId: number): Promise<number> {
 
   return line?.quantity ?? 0;
 }
+
+// How many items (units) the current user has in their cart, for the badge on
+// the header's cart icon. The header appears on every page, including for
+// visitors who are not logged in, so unlike the functions above this never
+// redirects: nobody logged in simply has 0. cache() makes it run once per page
+// render, however many components ask. It is one small query on the user's own
+// rows (the unique user_id, product_id index), and only for logged-in visitors.
+export const getCartCount = cache(async (): Promise<number> => {
+  const user = await getCurrentUser();
+  if (!user) return 0;
+
+  const { _sum } = await prisma.cartItem.aggregate({
+    where: { userId: user.id },
+    _sum: { quantity: true },
+  });
+
+  return _sum.quantity ?? 0;
+});
