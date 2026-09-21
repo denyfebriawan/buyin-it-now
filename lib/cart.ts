@@ -123,3 +123,16 @@ export async function removeCartItem(cartItemId: number): Promise<number> {
 
   return count;
 }
+
+// How many of one product the current user already has in their cart, or 0.
+// The product page uses it to work out how many more can still be added.
+export async function getCartQuantity(productId: number): Promise<number> {
+  const user = await requireUser();
+
+  const line = await prisma.cartItem.findUnique({
+    where: { userId_productId: { userId: user.id, productId } },
+    select: { quantity: true },
+  });
+
+  return line?.quantity ?? 0;
+}

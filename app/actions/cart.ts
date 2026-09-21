@@ -44,6 +44,11 @@ export async function addToCartAction(
     };
   }
 
+  // The product page shows how many more can be added, which just changed, so
+  // re-render it. (Nothing needed refreshing before this page depended on the
+  // cart.)
+  refresh();
+
   // The final quantity is reported, not the requested one: if the stock cap
   // applied, the customer sees what is really in their cart.
   return {

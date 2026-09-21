@@ -8,6 +8,7 @@ import { AddToCartForm } from "@/components/add-to-cart-form";
 import { StockBadge } from "@/components/stock-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
+import { getCartQuantity } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { getProductById, parseProductId } from "@/lib/products";
 import { getStockStatus } from "@/lib/stock";
@@ -43,6 +44,10 @@ export default async function ProductPage({
   // The header already asked for the current user, and the answer is cached
   // for the request, so this costs no extra query.
   const user = await getCurrentUser();
+  // How many more can still be added: the per-line limit minus what this user
+  // already has in their cart. Only looked up for logged-in visitors.
+  const inCart = user ? await getCartQuantity(product.id) : 0;
+  const canAdd = Math.max(0, Math.min(product.stock, MAX_QUANTITY) - inCart);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
@@ -86,10 +91,24 @@ export default async function ProductPage({
               <Button size="lg" disabled>
                 Out of stock
               </Button>
+            ) : user && canAdd === 0 ? (
+              <div className="flex flex-col items-start gap-3">
+                <p className="text-sm text-muted-foreground">
+                  You already have {inCart} in your cart, the most that can be
+                  added.
+                </p>
+                <Link
+                  href="/cart"
+                  className={buttonVariants({ variant: "outline", size: "lg" })}
+                >
+                  View cart
+                </Link>
+              </div>
             ) : user ? (
               <AddToCartForm
                 productId={product.id}
-                maxQuantity={Math.min(product.stock, MAX_QUANTITY)}
+                maxQuantity={canAdd}
+                inCart={inCart}
               />
             ) : (
               <Link href="/login" className={buttonVariants({ size: "lg" })}>
