@@ -1,3 +1,5 @@
+import type { OrderStatus } from "@/generated/prisma/client";
+
 const usd = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -18,4 +20,14 @@ const dateTime = new Intl.DateTimeFormat("en-US", {
 // or which browser produced it.
 export function formatDateTime(date: Date): string {
   return `${dateTime.format(date)} UTC`;
+}
+
+const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  PENDING: "Pending",
+  PAID: "Paid (simulated)",
+  CANCELLED: "Cancelled",
+};
+
+export function formatOrderStatus(status: OrderStatus): string {
+  return ORDER_STATUS_LABEL[status];
 }

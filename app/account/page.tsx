@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -29,6 +31,15 @@ export default async function AccountPage() {
             <dt className="text-muted-foreground">Email</dt>
             <dd>{user.email}</dd>
           </dl>
+          <Link
+            href="/orders"
+            className={buttonVariants({
+              variant: "outline",
+              className: "mt-6 w-full",
+            })}
+          >
+            Your orders
+          </Link>
         </CardContent>
       </Card>
     </div>

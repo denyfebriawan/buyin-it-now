@@ -183,3 +183,46 @@ export async function getOrder(orderId: number) {
     },
   });
 }
+
+export const ORDERS_PER_PAGE = 10;
+
+// One page of the current user's orders, newest first, using a "bookmark"
+// (keyset) instead of page numbers: pass the id of the last order you saw as
+// `before` to get the ones older than it. Unlike "skip N rows", the bookmark
+// stays correct when new orders arrive while someone is browsing (nothing is
+// shown twice or skipped), and it does not get slower on deep pages.
+//
+// It asks for one row more than a page. If that extra row exists there is a
+// next page, and this avoids a separate "how many orders?" query. Order ids only
+// go up, so "older" means "a smaller id". The user's id is part of the query, so
+// only their own orders can ever be returned.
+export async function getOrders(before?: number) {
+  const user = await requireUser();
+
+  const rows = await prisma.order.findMany({
+    where: {
+      userId: user.id,
+      ...(before !== undefined ? { id: { lt: before } } : {}),
+    },
+    orderBy: { id: "desc" },
+    take: ORDERS_PER_PAGE + 1,
+    select: {
+      id: true,
+      status: true,
+      totalCents: true,
+      createdAt: true,
+      items: { select: { quantity: true } },
+    },
+  });
+
+  const page = rows.slice(0, ORDERS_PER_PAGE);
+
+  return {
+    orders: page.map(({ items, ...order }) => ({
+      ...order,
+      itemCount: items.reduce((total, item) => total + item.quantity, 0),
+    })),
+    nextBefore:
+      rows.length > ORDERS_PER_PAGE ? page[page.length - 1].id : null,
+  };
+}

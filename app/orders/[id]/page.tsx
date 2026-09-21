@@ -5,17 +5,11 @@ import { notFound } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { formatDateTime, formatPrice } from "@/lib/format";
+import { formatDateTime, formatOrderStatus, formatPrice } from "@/lib/format";
 import { getOrder } from "@/lib/orders";
 import { parseOrderId } from "@/lib/validation/orders";
 
 export const metadata: Metadata = { title: "Your order" };
-
-const STATUS_LABEL = {
-  PENDING: "Pending",
-  PAID: "Paid (simulated)",
-  CANCELLED: "Cancelled",
-} as const;
 
 export default async function OrderPage({
   params,
@@ -47,7 +41,7 @@ export default async function OrderPage({
         <h1 className="text-2xl font-semibold tracking-tight">
           Order #{order.id}
         </h1>
-        <Badge variant="outline">{STATUS_LABEL[order.status]}</Badge>
+        <Badge variant="outline">{formatOrderStatus(order.status)}</Badge>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Placed {formatDateTime(order.createdAt)}
@@ -92,12 +86,14 @@ export default async function OrderPage({
         <span className="tabular-nums">{formatPrice(order.totalCents)}</span>
       </div>
 
-      <Link
-        href="/"
-        className={buttonVariants({ variant: "outline", className: "mt-8" })}
-      >
-        Continue shopping
-      </Link>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link href="/orders" className={buttonVariants({ variant: "outline" })}>
+          View all orders
+        </Link>
+        <Link href="/" className={buttonVariants({ variant: "outline" })}>
+          Continue shopping
+        </Link>
+      </div>
     </div>
   );
 }
