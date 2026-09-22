@@ -1,0 +1,22 @@
+# Keeps the build context small and, more importantly, keeps secrets out of
+# it entirely: a file that's never sent to Docker can never end up baked into
+# an image layer by accident, no matter what a COPY instruction says later.
+# Real secrets (DATABASE_URL, SESSION_SECRET) are passed to the container as
+# environment variables at `docker run` / `docker compose up` time instead.
+
+node_modules
+.next
+generated/prisma
+
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+
+npm-debug.log*
+*.tsbuildinfo
+next-env.d.ts
+
+README.md
