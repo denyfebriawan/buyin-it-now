@@ -11,6 +11,7 @@ const SECTIONS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/users", label: "Users" },
 ];
 
 // Only the highlight of the current page needs the browser (usePathname), so
@@ -19,7 +20,7 @@ export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Admin" className="flex flex-row gap-1 md:flex-col">
+    <nav aria-label="Admin" className="flex flex-row flex-wrap gap-1 md:flex-col">
       {SECTIONS.map(({ href, label }) => {
         const current =
           href === "/admin"

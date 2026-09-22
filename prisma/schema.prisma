@@ -18,6 +18,11 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum AuditAction {
+  PROMOTED
+  DEMOTED
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -28,6 +33,12 @@ model User {
 
   cartItems CartItem[]
   orders    Order[]
+
+  // Every promotion or demotion an admin performs, and every one done to
+  // them. Named relations because there are two foreign keys to this same
+  // table (who did it, and who it was done to).
+  auditActionsDone AdminAuditLog[] @relation("AuditActor")
+  auditActionsOn   AdminAuditLog[] @relation("AuditTarget")
 
   @@map("users")
 }
@@ -102,4 +113,25 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
+}
+
+// One row per promotion or demotion, so "who made this account an admin, and
+// when" is always answerable, never overwritten by the next change. Rows are
+// never updated or deleted, only inserted.
+model AdminAuditLog {
+  id        Int         @id @default(autoincrement())
+  actorId   Int         @map("actor_id")
+  targetId  Int         @map("target_id")
+  action    AuditAction
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  // A user who ever appears in this log can never be deleted (there is no
+  // delete-user feature in the app at all), the same rule as an order's buyer.
+  actor  User @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  target User @relation("AuditTarget", fields: [targetId], references: [id], onDelete: Restrict)
+
+  // Serves "this user's own history, newest first". The site-wide log orders
+  // by id too, but that is already the primary key's own index.
+  @@index([targetId, id])
+  @@map("admin_audit_log")
 }
