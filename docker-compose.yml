@@ -1,0 +1,67 @@
+# For testing the whole app locally in containers, before anything touches
+# AWS. Two services: a throwaway Postgres, and the app itself, built from the
+# Dockerfile in this folder.
+#
+# Containers on the same compose network can reach each other by SERVICE
+# NAME, not "localhost" -- that's why the app's DATABASE_URL below points at
+# host "db", not "localhost": "db" is this file's name for the Postgres
+# service, and Docker's internal DNS resolves it to that container's address
+# automatically. "localhost" from inside the app container would mean the
+# app container itself, which has no database running in it.
+#
+# This Postgres is separate from whatever Postgres you already have running
+# on your machine: different container, different data, mapped to a
+# different HOST port (5433) specifically so it doesn't collide with your
+# existing one on 5432.
+#
+#   docker compose up --build
+#
+# The database starts empty -- it has no tables yet. Run migrations against
+# it once, from your host (this reuses your existing Prisma setup, no need
+# to install anything extra):
+#
+#   DATABASE_URL=postgresql://buyin:buyin@localhost:5433/buyin_it_now npx prisma migrate deploy
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: buyin
+      POSTGRES_PASSWORD: buyin
+      POSTGRES_DB: buyin_it_now
+    ports:
+      - "5433:5432"
+    volumes:
+      # Postgres 18's official image changed convention from earlier
+      # versions: it now wants the volume mounted one directory higher, at
+      # /var/lib/postgresql (not .../data), and manages its own
+      # version-numbered subdirectory underneath that itself.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buyin -d buyin_it_now"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      # The container network's own port (always 5432 inside the network),
+      # not the 5433 the host reaches it on -- those are two different doors
+      # to the same room.
+      DATABASE_URL: postgresql://buyin:buyin@db:5432/buyin_it_now
+      # A fixed, clearly-fake value: fine for local testing only, because
+      # this file is committed to the repo and meant to be reproducible for
+      # anyone who clones it. Never reuse this for anything real -- generate
+      # your own with `openssl rand -base64 32` for an actual deployment.
+      SESSION_SECRET: local-docker-compose-testing-only-not-a-real-secret
+
+volumes:
+  db-data:
