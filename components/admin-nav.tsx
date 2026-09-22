@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 const SECTIONS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/products", label: "Products" },
+  { href: "/admin/orders", label: "Orders" },
 ];
 
 // Only the highlight of the current page needs the browser (usePathname), so
