@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:make-admin": "tsx scripts/make-admin.ts"
+    "db:make-admin": "tsx scripts/make-admin.ts",
+    "load-test:checkout": "tsx scripts/load-test-checkout.ts",
+    "load-test:pagination": "tsx scripts/load-test-pagination.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -20,6 +22,7 @@
     "argon2": "^0.45.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
+    "jose": "^6.1.3",
     "lucide-react": "^1.47.0",
     "next": "16.3.5",
     "pg": "^8.23.0",
