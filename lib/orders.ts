@@ -89,19 +89,21 @@ export async function placeOrder(
             SET stock = stock - ${line.quantity}::int
             WHERE id = ${line.product_id}::int
               AND stock >= ${line.quantity}::int
+              AND archived_at IS NULL
             RETURNING price_cents
           `;
 
           if (updated.length === 0) {
             const product = await tx.product.findUnique({
               where: { id: line.product_id },
-              select: { name: true, stock: true },
+              select: { name: true, stock: true, archivedAt: true },
             });
             short.push({
               productId: line.product_id,
               name: product?.name ?? "Unknown product",
               requested: line.quantity,
-              available: product?.stock ?? 0,
+              // An archived product cannot be bought at all: report it as sold out.
+              available: product && !product.archivedAt ? product.stock : 0,
             });
           } else {
             bought.push({

@@ -16,7 +16,7 @@ import { prisma } from "@/lib/prisma";
 export async function getCart() {
   const user = await requireUser();
 
-  const items = await prisma.cartItem.findMany({
+  const rows = await prisma.cartItem.findMany({
     where: { userId: user.id },
     orderBy: { id: "asc" },
     select: {
@@ -29,10 +29,20 @@ export async function getCart() {
           priceCents: true,
           imageUrl: true,
           stock: true,
+          archivedAt: true,
         },
       },
     },
   });
+
+  // Archiving a product also empties it out of every cart, so this only matters
+  // for the rare line added at the very moment of archiving. Such a line is
+  // shown as sold out (stock 0), which the cart and checkout already handle, so
+  // nobody can buy it and the shopper is told to remove it.
+  const items = rows.map(({ product: { archivedAt, ...product }, ...line }) => ({
+    ...line,
+    product: { ...product, stock: archivedAt ? 0 : product.stock },
+  }));
 
   const subtotalCents = items.reduce(
     (sum, item) => sum + item.quantity * item.product.priceCents,
@@ -69,25 +79,30 @@ export async function addToCart(
     INSERT INTO cart_items (user_id, product_id, quantity)
     SELECT ${user.id}::int, p.id, LEAST(${quantity}::int, p.stock)
     FROM products p
-    WHERE p.id = ${productId}::int AND p.stock > 0
+    WHERE p.id = ${productId}::int AND p.stock > 0 AND p.archived_at IS NULL
     ON CONFLICT (user_id, product_id) DO UPDATE
       SET quantity = LEAST(
         cart_items.quantity + ${quantity}::int,
         (SELECT stock FROM products WHERE id = cart_items.product_id)
       )
-      -- If the stock hit 0 after the insert check, skip the update: a
-      -- quantity of 0 would break the table's quantity > 0 rule.
-      WHERE (SELECT stock FROM products WHERE id = cart_items.product_id) > 0
+      -- If the stock hit 0 (or the product was archived) after the insert
+      -- check, skip the update: a quantity of 0 would break the table's
+      -- quantity > 0 rule.
+      WHERE EXISTS (
+        SELECT 1 FROM products
+        WHERE id = cart_items.product_id AND stock > 0 AND archived_at IS NULL
+      )
     RETURNING quantity
   `;
 
   // RETURNING only yields a row when something was inserted or updated.
   if (rows.length > 0) return { ok: true, quantity: rows[0].quantity };
 
-  // No row came back, so the product is missing or has no stock. Only now do
-  // we spend a second query to tell the two cases apart for the message.
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
+  // No row came back, so the product is missing (an archived one counts as
+  // missing) or has no stock. Only now do we spend a second query to tell the
+  // two cases apart for the message.
+  const product = await prisma.product.findFirst({
+    where: { id: productId, archivedAt: null },
     select: { id: true },
   });
   return { ok: false, reason: product ? "out-of-stock" : "not-found" };
@@ -111,6 +126,7 @@ export async function setCartItemQuantity(
       AND ci.user_id = ${user.id}::int
       AND p.id = ci.product_id
       AND p.stock > 0
+      AND p.archived_at IS NULL
   `;
 
   return affected > 0;
