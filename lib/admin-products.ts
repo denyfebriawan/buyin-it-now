@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireAdmin } from "@/lib/auth";
+import { escapeLike } from "@/lib/db";
 import { prisma } from "@/lib/prisma";
 import { MAX_STOCK } from "@/lib/validation/product";
 
@@ -10,14 +11,6 @@ import { MAX_STOCK } from "@/lib/validation/product";
 // Unlike the shop (lib/products.ts) these see archived products too.
 
 export const ADMIN_PRODUCTS_PER_PAGE = 20;
-
-// In a LIKE pattern, % means "anything" and _ means "any one character".
-// Prisma's `contains` does not escape them (the value is only wrapped in %...%),
-// so typing "%" would match every product. Putting a backslash in front makes
-// them ordinary characters; the backslash itself needs escaping first.
-function escapeLike(text: string): string {
-  return text.replace(/[\\%_]/g, "\\$&");
-}
 
 export type ProductStatusFilter = "active" | "archived";
 

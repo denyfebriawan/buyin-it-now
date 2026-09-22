@@ -24,3 +24,13 @@ export function parseOrderId(value: string): number | null {
   const id = Number(value);
   return id > 0 && id <= MAX_INT ? id : null;
 }
+
+// The admin "Cancel order" form sends only which order. Digits only, same rule
+// as parseOrderId above but as a schema, for a Server Action's hidden field.
+export const orderIdSchema = z.object({
+  orderId: z
+    .string({ error: "Invalid order." })
+    .regex(/^\d+$/, "Invalid order.")
+    .transform(Number)
+    .pipe(z.number().min(1, "Invalid order.").max(MAX_INT, "Invalid order.")),
+});
